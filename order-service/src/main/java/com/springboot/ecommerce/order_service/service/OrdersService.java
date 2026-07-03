@@ -1,6 +1,9 @@
 package com.springboot.ecommerce.order_service.service;
 
+import com.springboot.ecommerce.order_service.client.InventoryFeignClient;
 import com.springboot.ecommerce.order_service.dto.OrderRequestDto;
+import com.springboot.ecommerce.order_service.entity.OrderItem;
+import com.springboot.ecommerce.order_service.entity.OrderStatus;
 import com.springboot.ecommerce.order_service.entity.Orders;
 import com.springboot.ecommerce.order_service.repository.OrdersRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +20,7 @@ public class OrdersService {
 
     private final OrdersRepository orderRepository;
     private final ModelMapper modelMapper;
-//    private final InventoryOpenFeignClient inventoryOpenFeignClient;
+    private final InventoryFeignClient inventoryFeignClient;
 
     public List<OrderRequestDto> getAllOrders() {
         log.info("Fetching all orders");
@@ -31,24 +34,26 @@ public class OrdersService {
         return modelMapper.map(order, OrderRequestDto.class);
     }
 
+
+
 ////    @Retry(name = "inventoryRetry", fallbackMethod = "createOrderFallback")
 //    @CircuitBreaker(name = "inventoryCircuitBreaker", fallbackMethod = "createOrderFallback")
 ////    @RateLimiter(name = "inventoryRateLimiter", fallbackMethod = "createOrderFallback")
-//    public OrderRequestDto createOrder(OrderRequestDto orderRequestDto) {
-//        log.info("Calling the createOrder method");
-//        Double totalPrice = inventoryOpenFeignClient.reduceStocks(orderRequestDto);
+    public OrderRequestDto createOrder(OrderRequestDto orderRequestDto) {
+        log.info("Calling the createOrder method");
+        Double totalPrice = inventoryFeignClient.reduceStocks(orderRequestDto);
+
+        Orders orders = modelMapper.map(orderRequestDto, Orders.class);
+        for(OrderItem orderItem: orders.getItems()) {
+            orderItem.setOrder(orders);
+        }
+        orders.setTotalPrice(totalPrice);
+        orders.setOrderStatus(OrderStatus.CONFIRMED);
 //
-//        Orders orders = modelMapper.map(orderRequestDto, Orders.class);
-//        for(OrderItem orderItem: orders.getItems()) {
-//            orderItem.setOrder(orders);
-//        }
-//        orders.setTotalPrice(totalPrice);
-//        orders.setOrderStatus(OrderStatus.CONFIRMED);
+        Orders savedOrder = orderRepository.save(orders);
 //
-//        Orders savedOrder = orderRepository.save(orders);
-//
-//        return modelMapper.map(savedOrder, OrderRequestDto.class);
-//    }
+        return modelMapper.map(savedOrder, OrderRequestDto.class);
+    }
 //
 //    public OrderRequestDto createOrderFallback(OrderRequestDto orderRequestDto, Throwable throwable) {
 //        log.error("Fallback occurred due to : {}", throwable.getMessage());
