@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/orders")
+@RequestMapping("/orders/core")
 @RequiredArgsConstructor
 @Slf4j
 public class OrdersController {
